@@ -9,9 +9,26 @@
         }
         
         h2 {
-            color: cyan
+            color: cyan;
+        }
+        
+        a:hover {
+            color: yellow
         }
     </style>
-    <h1>{{variable}}</h1>
 </div>
+{%for AvailableJob in data%}
+<div class="card text-white bg-info mb-3" style="max-width: auto" align="center">
+    <div class="card-header">Job Available</div>
+    <div class="card-body">
+        <h4 class="card-text" style="color:rgb(47, 14, 138)">Job: {{AvailableJob.availablejob}}</h4>
+        <h4 class="card-text" style="color:rgb(47, 14, 138)">Post: {{AvailableJob.postreqd}}</h4>
+        <h4 class="card-text" style="color:rgb(47, 14, 138)">Salary in INR: {{AvailableJob.averagesalary}}</h4>
+        <h4 class="card-text" style="color:rgb(47, 14, 138)">Description: {{AvailableJob.jobdescription}}</h4>
+        <a href="mailto:{{AvailableJob.email}}">
+            <h4 class="card-text" style="color:rgb(47, 14, 138)">Email: {{AvailableJob.email}}</h4>
+        </a>
+    </div>
+</div>
+<br>{%endfor%}
 <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br> {%endblock body%}

@@ -16,16 +16,17 @@ class JobReqd(UserMixin,db.Model):
     wantedsalary=db.Column(db.Integer, nullable=False)
     yourdescription=db.Column(db.String(100), nullable=False)
     def __repr__(self):
-        return '<User %r>' % self.wantedjob + self.wantedpost
+        return self.wantedjob + self.wantedpost
 
 class AvailableJob(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
     availablejob = db.Column(db.String(120), unique=True, nullable=False)
     postreqd = db.Column(db.String(80), nullable=False)
-    averagesalary=db.Column(db.Integer, nullable=False)
+    averagesalary=db.Column(db.String(1000), nullable=False)
     jobdescription=db.Column(db.String(100), nullable=False)
+    email=db.Column(db.String(1000),unique=True,nullable=False)
     def __repr__(self):
-        return '<User %r>' % self.availablejob + self.postreqd
+        return 'Job:'+self.availablejob + ' Post:'+self.postreqd+' Salary:'+self.averagesalary+ ' Description:'+self.jobdescription
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -98,15 +99,22 @@ def form():
 @app.route('/vacancie', methods=['POST', 'GET'])
 def vacancie():
     if request.method == 'POST':
+        email=request.form.get('email')
+        password=request.form.get('password')
         jobavailable = request.form.get("job_type")
         averagesalary = request.form.get("salary")
         requiredpost = request.form.get("post")
         jobdescription = request.form.get("describe")
-        availablejob=AvailableJob(availablejob=jobavailable,postreqd=requiredpost,averagesalary=averagesalary,jobdescription=jobdescription)
-        db.session.add(availablejob)
-        db.session.commit()
-        flash('Vacancie Posted', 'success')
-        return redirect('/')
+        user =User.query.filter_by(email=email).first()
+        if password==user.password:
+            availablejob=AvailableJob(availablejob=jobavailable,postreqd=requiredpost,averagesalary=averagesalary,jobdescription=jobdescription, email=email)
+            db.session.add(availablejob)
+            db.session.commit()
+            flash('Vacancie Posted', 'success')
+            return redirect('/')
+        else:
+            flash("Invalid Credentials", "danger")
+            return redirect('/')
     return render_template('vacancie.html')
 
 @app.route('/ApplyForJob',methods=['POST', 'GET'])
@@ -182,7 +190,7 @@ def deactivateaccount():
 @app.route("/jobforyou")
 def jobforyou():
     jobs = AvailableJob.query.all()
-    return render_template("jobforyou.html",variable=jobs)
+    return render_template("jobforyou.html", data=jobs)
 
 if __name__ == "__main__":
     db.create_all()
