@@ -4,37 +4,40 @@ from flask_sqlalchemy import SQLAlchemy
 #imports
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_D)ATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY']='qwertyuiopasdfghjklzxcvbnm'
 db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 class JobReqd(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    wantedjob = db.Column(db.String(120), unique=True, nullable=False)
+    email=db.Column(db.String(1000),nullable=False)
+    wantedjob = db.Column(db.String(120), nullable=False)
     wantedpost = db.Column(db.String(80), nullable=False)
     wantedsalary=db.Column(db.Integer, nullable=False)
-    yourdescription=db.Column(db.String(100), nullable=False)
+    yourdescription=db.Column(db.String(10000), nullable=False)
+    location=db.Column(db.String(10000), nullable=False)
     def __repr__(self):
         return self.wantedjob + self.wantedpost
 
 class AvailableJob(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    availablejob = db.Column(db.String(120), unique=True, nullable=False)
+    email=db.Column(db.String(1000),nullable=False)
+    availablejob = db.Column(db.String(120), nullable=False)
     postreqd = db.Column(db.String(80), nullable=False)
     averagesalary=db.Column(db.String(1000), nullable=False)
-    jobdescription=db.Column(db.String(100), nullable=False)
-    email=db.Column(db.String(1000),unique=True,nullable=False)
+    jobdescription=db.Column(db.String(10000), nullable=False)
+    location=db.Column(db.String(80), nullable=False)
+    company=db.Column(db.String(800), nullable=False)
     def __repr__(self):
         return 'Job:'+self.availablejob + ' Post:'+self.postreqd+' Salary:'+self.averagesalary+ ' Description:'+self.jobdescription
 
 class User(UserMixin,db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120),unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
     fname=db.Column(db.String(100), nullable=False)
     lname=db.Column(db.String(100), nullable=False)
-    account_status=db.Column(db.String(100), nullable=False)
     db.relationship('JobReqd')
     db.relationship('AvailableJob')
     def __repr__(self):
@@ -63,7 +66,7 @@ def login():
             flash(f'Welcome to back Job Finder {email}', 'success')
             return redirect('/')
         else:
-            flash(f'Invalid Credentials."', 'warning')
+            flash(f'Invalid Credentials.', 'warning')
             return redirect('/login')
     return render_template("login.html")
 
@@ -74,7 +77,7 @@ def register():
         password = request.form.get('password')
         fname = request.form.get('first_name')
         lname = request.form.get('last_name')
-        user=User(email=email,password=password,fname=fname,lname=lname,account_status="active")
+        user=User(email=email,password=password,fname=fname,lname=lname)
         db.session.add(user)
         db.session.commit()
         flash(f'Welcome to Job Finder {email}', 'success')
@@ -105,9 +108,11 @@ def vacancie():
         averagesalary = request.form.get("salary")
         requiredpost = request.form.get("post")
         jobdescription = request.form.get("describe")
+        company=request.form.get("company")
+        location=request.form.get("location")
         user =User.query.filter_by(email=email).first()
         if password==user.password:
-            availablejob=AvailableJob(availablejob=jobavailable,postreqd=requiredpost,averagesalary=averagesalary,jobdescription=jobdescription, email=email)
+            availablejob=AvailableJob(availablejob=jobavailable,postreqd=requiredpost,averagesalary=averagesalary,jobdescription=jobdescription, email=email,location=location,company=company)
             db.session.add(availablejob)
             db.session.commit()
             flash('Vacancie Posted', 'success')
@@ -120,15 +125,23 @@ def vacancie():
 @app.route('/ApplyForJob',methods=['POST', 'GET'])
 def applyforjob():
     if request.method == 'POST':
+        email=request.form.get("email")
+        password=request.form.get("password")
         wantedjob = request.form.get("job_type")
         wantedsalary = request.form.get("salary")
         wantedpost = request.form.get("post")
         yourdescription = request.form.get("describe")
-        job=JobReqd(wantedjob=wantedjob, wantedpost=wantedpost,wantedsalary=wantedsalary,yourdescription=yourdescription)
-        db.session.add(job)
-        db.session.commit()
-        flash("SUCCESSFULLY APPLIED!", "success")
-        return redirect('/')
+        location = request.form.get("location")
+        user=User.query.filter_by(email=email).first()
+        if password==user.password:
+            job=JobReqd(email=email,wantedjob=wantedjob, wantedpost=wantedpost,wantedsalary=wantedsalary,yourdescription=yourdescription,location=location)
+            db.session.add(job)
+            db.session.commit()
+            flash("Succcesfully saved your details. You can now check if there is a job for you.", "success")
+            return redirect('/')
+        else:
+            flash("Invalid Credentials", "danger")
+            return redirect("/")
     return render_template('apply_for_job.html')
 
 @app.route('/delete', methods=['POST','GET'])
@@ -147,50 +160,39 @@ def delete():
             flash("Invalid Password", "danger")
             return redirect("/")
     return render_template("delete.html")
-    
-@app.route("/accountstatus")
-def accountstatus():
-    return render_template('accountstatus.html')
 
-@app.route("/activateaccount", methods=['GET', 'POST'])
-def activateaccount():
-    if request.method == 'POST':
-        email = request.form.get("email")
-        passwordAttempt = request.form.get("password")
-        user =User.query.filter_by(email=email).first()
-        password = user.password
-        if passwordAttempt == password:
-            user.account_status="active"
-            db.session.commit()
-            flash("Account Activated.", "secondary")
-            return redirect("/")
-        else:
-            flash("Invalid Password", "danger")
-            return redirect("/")
-    return render_template('activate_account.html')
-
-@app.route("/deactivateaccount", methods=['GET', 'POST'])
-def deactivateaccount():
-    if request.method == 'POST':
-        email = request.form.get("email")
-        passwordAttempt = request.form.get("password")
-        user =User.query.filter_by(email=email).first()
-        password = user.password
-        if passwordAttempt == password:
-            user.account_status="deactivate"
-            db.session.commit()
-            print(user.account_status)
-            flash("Account Deactivated.", "secondary")
-            return redirect("/")
-        else:
-            flash("Invalid Password", "danger")
-            return redirect("/")
-    return render_template('deactivateaccount.html')
-
-@app.route("/jobforyou")
+@app.route("/jobforyou", methods=['GET', 'POST'])
 def jobforyou():
-    jobs = AvailableJob.query.all()
-    return render_template("jobforyou.html", data=jobs)
+    if request.method=='POST':
+        email = request.form.get("email")
+        passwordAttempt = request.form.get("password")
+        user=User.query.filter_by(email=email).first()
+        if user.password==passwordAttempt:
+            dreamjob =JobReqd.query.filter_by(email=email).first()
+            wantedjob=dreamjob.wantedjob
+            wantedpost=dreamjob.wantedpost
+            location=dreamjob.location
+            jobs = AvailableJob.query.filter_by(availablejob=wantedjob,postreqd=wantedpost,location=location)
+            return render_template("jobforyou.html", data=jobs)
+    return render_template('jobforyou.html')
+
+@app.route("/deletevacancie",methods=['GET','POST'])
+def deletevacancie():
+    if request.method=='POST':
+        email=request.form.get('email')
+        password=request.form.get('password')
+        print(email)
+        user=User.query.filter_by(email=email).first()
+        print(user.password)
+        if user.password==password:
+            jobtobedeleted = request.form.get("job")
+            job =AvailableJob.query.filter_by(email=email,availablejob=jobtobedeleted).first()
+            db.session.delete(job)
+            db.session.commit()
+            flash("Successfully Deleted", "success")
+            return redirect("/")
+        return render_template("delete_vacancies.html")
+    return render_template("delete_vacancies.html")
 
 if __name__ == "__main__":
     db.create_all()
